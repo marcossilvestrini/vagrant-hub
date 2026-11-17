@@ -1,0 +1,32 @@
+- name: Install the administration packages from userdata-ol9.sh
+  ansible.builtin.package:
+    name: "{{ common_packages[ansible_os_family] }}"
+    state: present
+- name: Apply the original SSH settings from debug
+  ansible.builtin.copy:
+    src: 01-sshd-custom.conf
+    dest: /etc/ssh/sshd_config.d/01-sshd-custom.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart SSH
+- name: Disable firewalld as the legacy lab image did
+  ansible.builtin.service:
+    name: firewalld
+    state: stopped
+    enabled: false
+  failed_when: false
+- name: Set SELinux permissive for the running legacy lab image
+  ansible.builtin.command: setenforce Permissive
+  changed_when: false
+  failed_when: false
+- name: Enable nftables as the legacy lab image did
+  ansible.builtin.service:
+    name: nftables
+    state: started
+    enabled: true
+- name: Enable iSCSI initiator service from userdata-ol9.sh
+  ansible.builtin.service:
+    name: iscsid
+    state: started
+    enabled: true

@@ -1,0 +1,8 @@
+- name: Install RKE2 control-plane components
+  hosts: all
+  become: true
+  roles:
+    - common
+    - role: rke2
+      vars:
+        rke2_type: server

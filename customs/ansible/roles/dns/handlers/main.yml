@@ -1,0 +1,4 @@
+- name: Restart BIND chroot
+  ansible.builtin.service:
+    name: named-chroot
+    state: restarted

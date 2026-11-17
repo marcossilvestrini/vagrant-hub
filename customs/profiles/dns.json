@@ -1,0 +1,14 @@
+{
+  "name": "dns",
+  "displayName": "DNS (BIND)",
+  "description": "BIND master para skynet.com.br e a rede 192.168.0.0/24.",
+  "playbook": "dns.yml",
+  "memory": 2048,
+  "cpus": 2,
+  "extraVars": {
+    "bind_zone_name": "skynet.com.br",
+    "bind_dnssec_key": "Kskynet.com.br.+013+29838"
+  },
+  "hostname": "infra-server01",
+  "networkIp": "192.168.0.130"
+}

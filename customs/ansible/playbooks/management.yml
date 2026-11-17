@@ -1,0 +1,6 @@
+- name: Configure a Salt management server
+  hosts: all
+  become: true
+  roles:
+    - common
+    - management

@@ -1,0 +1,96 @@
+- name: Download the official RKE2 installer used by the legacy scripts
+  ansible.builtin.get_url:
+    url: https://get.rke2.io
+    dest: /usr/local/src/rke2-install.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install RKE2 server or agent
+  ansible.builtin.command: /usr/local/src/rke2-install.sh
+  environment:
+    INSTALL_RKE2_TYPE: "{{ rke2_type }}"
+    INSTALL_RKE2_CHANNEL: "{{ rke2_channel }}"
+    INSTALL_RKE2_VERSION: "{{ rke2_version }}"
+  args:
+    creates: /usr/local/bin/rke2
+
+- name: Create the etcd account used by the legacy server configuration
+  ansible.builtin.user:
+    name: etcd
+    comment: etcd user
+    system: true
+    shell: /sbin/nologin
+    create_home: false
+  when: rke2_type == "server"
+
+- name: Install the original Canal NetworkManager workaround
+  ansible.builtin.copy:
+    src: rke2-canal.conf
+    dest: /etc/NetworkManager/conf.d/rke2-canal.conf
+    owner: root
+    group: root
+    mode: "0644"
+  when: rke2_type == "server"
+  notify: Reload NetworkManager
+
+- name: Create the RKE2 configuration directory
+  ansible.builtin.file:
+    path: "{{ rke2_config_directory }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Configure the RKE2 server with the first-node settings and shared lab token
+  ansible.builtin.template:
+    src: server-config.yaml.j2
+    dest: "{{ rke2_config_directory }}/config.yaml"
+    owner: root
+    group: root
+    mode: "0600"
+  when: rke2_type == "server"
+
+- name: Configure the RKE2 agent with the original endpoint and shared lab token
+  ansible.builtin.template:
+    src: agent-config.yaml.j2
+    dest: "{{ rke2_config_directory }}/config.yaml"
+    owner: root
+    group: root
+    mode: "0600"
+  when: rke2_type == "agent"
+
+- name: Install the runtime network setup used by the legacy lab
+  ansible.builtin.template:
+    src: node-network.sh.j2
+    dest: /usr/local/sbin/rke2-lab-network
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create the RKE2 service drop-in directory
+  ansible.builtin.file:
+    path: "/etc/systemd/system/rke2-{{ rke2_type }}.service.d"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+- name: Install the RKE2 service network hook
+  ansible.builtin.template:
+    src: service-network.conf.j2
+    dest: "/etc/systemd/system/rke2-{{ rke2_type }}.service.d/10-lab-network.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Reload systemd before enabling the RKE2 service
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Enable RKE2 to start automatically with its configuration
+  ansible.builtin.systemd:
+    name: "rke2-{{ rke2_type }}"
+    enabled: true
+    state: stopped
+

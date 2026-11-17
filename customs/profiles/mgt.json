@@ -1,0 +1,9 @@
+{
+  "name": "mgt",
+  "displayName": "Management (Salt Master)",
+  "description": "Salt Master com roots /srv/salt, /srv/formulas e /srv/pillar, conforme o lab.",
+  "playbook": "management.yml",
+  "memory": 4096,
+  "cpus": 2,
+  "extraVars": {}
+}

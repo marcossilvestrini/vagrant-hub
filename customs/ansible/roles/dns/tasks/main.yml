@@ -1,0 +1,73 @@
+- name: Install the BIND packages used by the legacy DNS box
+  ansible.builtin.package:
+    name: "{{ bind_packages }}"
+    state: present
+
+- name: Install the original BIND master configuration
+  ansible.builtin.copy:
+    src: named.conf
+    dest: /etc/named.conf
+    owner: root
+    group: named
+    mode: "0640"
+
+- name: Install the original forward and reverse Skynet zones and DNSSEC key
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ bind_data_directory }}/{{ item.dest }}"
+    owner: root
+    group: named
+    mode: "{{ item.mode }}"
+  loop:
+    - { src: "skynet.zone", dest: "skynet.zone", mode: "0640" }
+    - { src: "0.168.192.in-addr.arpa.zone", dest: "0.168.192.in-addr.arpa.zone", mode: "0640" }
+    - { src: "Kskynet.com.br.+013+29838.key", dest: "Kskynet.com.br.+013+29838.key", mode: "0640" }
+    - { src: "Kskynet.com.br.+013+29838.private", dest: "Kskynet.com.br.+013+29838.private", mode: "0640" }
+
+- name: Sign the Skynet forward zone with its existing DNSSEC key
+  ansible.builtin.command:
+    argv:
+      - dnssec-signzone
+      - -P
+      - -f
+      - /var/named/skynet.zone.signed
+      - -o
+      - "{{ bind_zone_name }}"
+      - "{{ bind_data_directory }}/skynet.zone"
+      - "{{ bind_data_directory }}/{{ bind_dnssec_key }}.private"
+  args:
+    creates: "{{ bind_data_directory }}/skynet.zone.signed"
+
+- name: Enable the BIND chroot configuration
+  ansible.builtin.command:
+    argv:
+      - /usr/libexec/setup-named-chroot.sh
+      - /var/named/chroot
+      - "on"
+  args:
+    creates: /var/named/chroot/etc/named.conf
+
+- name: Validate the original Skynet zone files
+  ansible.builtin.command:
+    argv: ["named-checkzone", "{{ item.zone }}", "{{ bind_data_directory }}/{{ item.file }}"]
+  loop:
+    - { zone: "skynet.com.br", file: "skynet.zone" }
+    - { zone: "skynet.com.br", file: "skynet.zone.signed" }
+  changed_when: false
+
+- name: Enable BIND chroot to start when the test VM boots
+  ansible.builtin.service:
+    name: named-chroot
+    state: stopped
+    enabled: true
+
+- name: Keep the unchrooted BIND service disabled, as in the legacy setup
+  ansible.builtin.service:
+    name: named
+    state: stopped
+    enabled: false
+
+
+
+
+

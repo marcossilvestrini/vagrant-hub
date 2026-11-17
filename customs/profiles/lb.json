@@ -1,0 +1,11 @@
+{
+  "name": "lb",
+  "displayName": "Nginx Load Balancer",
+  "description": "Nginx stream proxy com os endpoints Rancher/RKE2 da rede Skynet.",
+  "playbook": "nginx.yml",
+  "memory": 2048,
+  "cpus": 2,
+  "extraVars": {},
+  "hostname": "load-balance",
+  "networkIp": "192.168.0.131"
+}

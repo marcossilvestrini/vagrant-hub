@@ -1,0 +1,42 @@
+- name: Import the Salt Project signing key used by the legacy build
+  ansible.builtin.rpm_key:
+    state: present
+    key: "{{ salt_rpm_key_url }}"
+  when: ansible_os_family == "RedHat"
+- name: Configure the original Salt RPM repository
+  ansible.builtin.get_url:
+    url: "{{ salt_rpm_repo_url }}"
+    dest: /etc/yum.repos.d/salt.repo
+    owner: root
+    group: root
+    mode: "0644"
+  when: ansible_os_family == "RedHat"
+- name: Install the Salt components from the legacy script
+  ansible.builtin.package:
+    name: "{{ salt_packages }}"
+    state: present
+- name: Create the original Salt state and pillar directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /srv/salt
+    - /srv/formulas
+    - /srv/pillar
+- name: Install the original Salt Master roots
+  ansible.builtin.copy:
+    src: master
+    dest: /etc/salt/master
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart Salt Master
+- name: Enable and start Salt Master
+  ansible.builtin.service:
+    name: salt-master
+    state: started
+    enabled: true
+

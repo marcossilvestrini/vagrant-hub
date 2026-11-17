@@ -1,0 +1,24 @@
+- name: Install Nginx and stream support
+  ansible.builtin.package:
+    name: "{{ nginx_packages }}"
+    state: present
+
+- name: Install the original Skynet/RKE2 load-balancer configuration
+  ansible.builtin.copy:
+    src: nginx.conf
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Restart Nginx
+
+- name: Validate the original Nginx configuration
+  ansible.builtin.command: nginx -t
+  changed_when: false
+
+- name: Enable and start Nginx
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true

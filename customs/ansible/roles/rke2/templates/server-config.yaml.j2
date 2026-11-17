@@ -1,0 +1,15 @@
+debug: true
+cni:
+  - canal
+token: "{{ rke2_token }}"
+write-kubeconfig-mode: "0644"
+tls-san:
+{% for san in rke2_tls_sans %}
+  - "{{ san }}"
+{% endfor %}
+node-ip: ipNode
+bind-address: ipNode
+advertise-address: ipNode
+etcd-expose-metrics: true
+node-taint:
+  - "CriticalAddonsOnly=true:NoExecute"

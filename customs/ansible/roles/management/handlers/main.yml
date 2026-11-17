@@ -1,0 +1,4 @@
+- name: Restart Salt Master
+  ansible.builtin.service:
+    name: salt-master
+    state: restarted

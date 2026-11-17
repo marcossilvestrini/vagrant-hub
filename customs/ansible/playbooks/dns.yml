@@ -1,0 +1,6 @@
+- name: Configure a local DNS server
+  hosts: all
+  become: true
+  roles:
+    - common
+    - dns

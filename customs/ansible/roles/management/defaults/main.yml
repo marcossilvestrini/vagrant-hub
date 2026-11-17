@@ -1,0 +1,14 @@
+salt_master_interface: IP_MASTER
+salt_master_roots:
+  - /srv/salt
+  - /srv/formulas
+salt_pillar_roots:
+  - /srv/pillar
+salt_packages:
+  - salt-master
+  - salt-ssh
+  - salt-syndic
+  - salt-cloud
+  - salt-api
+salt_rpm_repo_url: https://repo.saltproject.io/salt/py3/fedora/38/x86_64/latest.repo
+salt_rpm_key_url: https://repo.saltproject.io/salt/py3/fedora/38/x86_64/SALT-PROJECT-GPG-PUBKEY-2023.pub

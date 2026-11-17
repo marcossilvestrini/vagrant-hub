@@ -1,0 +1,13 @@
+{
+  "name": "rke2-wk",
+  "displayName": "RKE2 Worker",
+  "description": "RKE2 agent no endpoint control-plane01.skynet.com.br:9345, com token do lab legado.",
+  "playbook": "rke2-agent.yml",
+  "memory": 4096,
+  "cpus": 2,
+  "extraVars": {
+    "rke2_server_url": "https://control-plane01.skynet.com.br:9345"
+  },
+  "hostname": "worker01",
+  "networkIp": "192.168.0.143"
+}

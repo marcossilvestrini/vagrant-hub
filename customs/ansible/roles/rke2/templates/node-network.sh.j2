@@ -1,0 +1,33 @@
+#!/bin/bash
+set -euo pipefail
+
+# Use the same bridged lab route and interface as the legacy scripts.
+if ip link show eth1 >/dev/null 2>&1; then
+    ip route replace default via 192.168.0.1 dev eth1
+    node_ip="$(ip -4 -o addr show dev eth1 scope global | awk 'NR == 1 { split($4, a, "/"); print a[1] }')"
+else
+    node_ip=""
+fi
+
+# Fall back to the address discovery used by install-rke2.sh.
+if [ -z "$node_ip" ]; then
+    node_ip="$(hostname -i | awk '{print $1}')"
+fi
+
+# These names and addresses are the entries in the Skynet forward zone.
+case "$node_ip" in
+    192.168.0.140) node_name=control-plane01 ;;
+    192.168.0.141) node_name=control-plane02 ;;
+    192.168.0.142) node_name=control-plane03 ;;
+    192.168.0.143) node_name=worker01 ;;
+    192.168.0.144) node_name=worker02 ;;
+    192.168.0.145) node_name=worker03 ;;
+    *) node_name="" ;;
+esac
+if [ -n "$node_name" ]; then
+    hostnamectl set-hostname "$node_name"
+fi
+
+if [ "{{ rke2_type }}" = "server" ] && [ -n "$node_ip" ]; then
+    sed -i "s/ipNode/$node_ip/g" /etc/rancher/rke2/config.yaml
+fi

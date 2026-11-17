@@ -1,0 +1,16 @@
+rke2_type: server
+rke2_channel: stable
+rke2_version: ""
+rke2_config_directory: /etc/rancher/rke2
+rke2_server_url: https://control-plane01.skynet.com.br:9345
+rke2_tls_sans:
+  - rancher.skynet.com.br
+  - 192.168.0.131
+  - control-plane01.skynet.com.br
+  - 192.168.0.140
+  - control-plane02.skynet.com.br
+  - 192.168.0.141
+  - control-plane03.skynet.com.br
+  - 192.168.0.142
+rke2_legacy_token_file: "{{ role_path }}/files/config-agent.yaml"
+rke2_token: "{{ lookup('file', rke2_legacy_token_file) | regex_search('(?m)^token:\\s*(.+)$', '\\1') | first }}"

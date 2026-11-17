@@ -1,0 +1,11 @@
+bind_packages:
+  - bind
+  - bind-utils
+  - whois
+  - bind-dnssec-utils
+  - bind-chroot
+bind_service_name: named-chroot
+bind_zone_name: skynet.com.br
+bind_dnssec_key: Kskynet.com.br.+013+29838
+bind_data_directory: /var/named
+

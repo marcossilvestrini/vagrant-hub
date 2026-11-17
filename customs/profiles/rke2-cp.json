@@ -1,0 +1,16 @@
+{
+  "name": "rke2-cp",
+  "displayName": "RKE2 Control Plane",
+  "description": "RKE2 server com SANs do primeiro control plane Skynet.",
+  "playbook": "rke2-server.yml",
+  "memory": 8192,
+  "cpus": 4,
+  "extraVars": {
+    "rke2_tls_sans": [
+      "rancher.skynet.com.br",
+      "192.168.0.131"
+    ]
+  },
+  "hostname": "control-plane01",
+  "networkIp": "192.168.0.140"
+}
