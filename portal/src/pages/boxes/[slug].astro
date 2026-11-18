@@ -1,0 +1,66 @@
+---
+import SiteLayout from '../../components/SiteLayout.astro';
+import Icon from '../../components/Icon.astro';
+import catalog from '../../data/catalog.json';
+
+export function getStaticPaths() {
+  return catalog.boxes.map((box) => ({ params: { slug: box.slug }, props: { box } }));
+}
+
+const { box } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const releaseDate = new Date(catalog.updatedAt).toLocaleDateString('pt-BR');
+type Provider = (typeof box.providers)[number];
+
+function vagrantfile(provider: Provider) {
+  return `Vagrant.configure("2") do |config|
+  config.vm.box = "${box.namespace}/${box.name}"
+  config.vm.box_version = "${box.version}"
+  config.vm.box_url = "${provider.downloadUrl}"
+  config.vm.box_download_checksum = "${provider.checksum}"
+  config.vm.box_download_checksum_type = "${provider.checksumType}"
+  config.vm.box_download_options = {
+    "user-agent" => "Mozilla/5.0",
+    "cookie-jar" => File.join(__dir__, "onedrive.cookies"),
+    "cookie" => File.join(__dir__, "onedrive.cookies")
+  }
+  config.vm.provider "${provider.name}" do |vm|
+  end
+end`;
+}
+---
+<SiteLayout title={`${box.title} ${box.version}`} description={box.description}>
+  <section class="detail-hero">
+    <div class="container">
+      <div class="breadcrumbs"><a href={base}>Início</a><Icon name="chevron" size={15} /><a href={`${base}boxes/`}>Boxes</a><Icon name="chevron" size={15} /><span>{box.title}</span></div>
+      <div class="detail-heading"><span class="detail-mark"><Icon name="box" size={34} /></span><div><div class="box-kicker">{box.namespace} / {box.name}</div><h1>{box.title}</h1><p>{box.description}</p></div></div>
+      <div class="detail-tags">{box.tags.map((tag) => <span>{tag}</span>)}</div>
+    </div>
+  </section>
+
+  <section class="section detail-content">
+    <div class="container detail-columns">
+      <div class="detail-main">
+        <div class="detail-section-title"><div><span class="section-kicker">RELEASE MAIS RECENTE</span><h2>Versão {box.version}</h2></div><span class="status-badge"><span></span> Publicada</span></div>
+        <div class="release-meta"><span><Icon name="cpu" size={16} /> {box.architecture}</span><span><Icon name="calendar" size={16} /> Atualizada em {releaseDate}</span></div>
+        <div class="provider-listing-heading"><h3>Providers</h3><span>{box.providers.length} {box.providers.length === 1 ? 'formato disponível' : 'formatos disponíveis'}</span></div>
+        {box.providers.map((provider) => {
+          const sizeGb = (provider.sizeBytes / 1_000_000_000).toFixed(2);
+          const snippet = vagrantfile(provider);
+          return <article class="provider-card">
+            <div class="provider-heading"><div><span class="provider-label">PROVIDER</span><h3>{provider.label}</h3></div><span class="provider-chip">{provider.name}</span></div>
+            <div class="provider-specs"><div><Icon name="cpu" size={17} /><span>Arquitetura</span><strong>{box.architecture}</strong></div><div><Icon name="hard-drive" size={17} /><span>Tamanho</span><strong>{sizeGb} GB</strong></div><div><Icon name="shield" size={17} /><span>Integridade</span><strong>{provider.checksumType.toUpperCase()}</strong></div></div>
+            <div class="checksum-block"><div><span class="provider-label">CHECKSUM {provider.checksumType.toUpperCase()}</span><code>{provider.checksum}</code></div><button class="copy-button" type="button" data-copy={provider.checksum} aria-label={`Copiar checksum ${provider.checksumType}`}><Icon name="copy" size={16} /> Copiar</button></div>
+            <a class="button button-primary download-button" href={provider.downloadUrl} target="_blank" rel="noreferrer"><Icon name="download" size={18} /> Baixar arquivo .box <Icon name="external" size={16} /></a>
+            <details class="vagrant-config"><summary>Usar esta release no Vagrantfile <Icon name="chevron" size={15} /></summary><div class="code-block multiline"><code>{snippet}</code><button type="button" data-copy={snippet} aria-label="Copiar configuração Vagrant"><Icon name="copy" size={15} /></button></div></details>
+          </article>;
+        })}
+        <div class="notice"><Icon name="shield" size={18} /><p>Depois do download, valide o arquivo com o SHA-256 exibido acima.</p></div>
+      </div>
+
+      <aside class="detail-aside">
+        <div class="aside-card"><span class="section-kicker">SOBRE ESTA BOX</span><h3>{box.title}</h3><p>Namespace: <strong>{box.namespace}</strong><br />Nome: <strong>{box.name}</strong><br />Sistema: <strong>{box.os}</strong><br />Versão: <strong>{box.version}</strong><br />Arquitetura: <strong>{box.architecture}</strong></p><div class="aside-divider"></div><span class="provider-label">COMANDO VAGRANT</span><div class="code-block"><code>vagrant up --provider={box.providers[0]?.name}</code></div><p class="aside-help">Execute no diretório do projeto Vagrant.</p></div>
+      </aside>
+    </div>
+  </section>
+</SiteLayout>

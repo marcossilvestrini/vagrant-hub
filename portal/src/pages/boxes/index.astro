@@ -1,0 +1,36 @@
+---
+import SiteLayout from '../../components/SiteLayout.astro';
+import BoxCard from '../../components/BoxCard.astro';
+import Icon from '../../components/Icon.astro';
+import catalog from '../../data/catalog.json';
+
+const boxes = catalog.boxes;
+const base = import.meta.env.BASE_URL;
+---
+<SiteLayout title="Boxes Vagrant" description="Pesquise boxes por sistema operacional, release ou provider no catálogo Vagrant Hub.">
+  <section class="page-hero">
+    <div class="container">
+      <div class="breadcrumbs"><a href={base}>Início</a><Icon name="chevron" size={15} /><span>Boxes</span></div>
+      <div class="section-kicker">CATÁLOGO DE RELEASES</div>
+      <h1>Boxes Vagrant<span class="blue-period">.</span></h1>
+      <p>Pesquise por nome, versão, arquitetura ou provider.</p>
+      <label class="catalog-search"><Icon name="search" size={20} /><input type="search" placeholder="Ex.: Debian 13, x86_64, VMware" aria-label="Pesquisar boxes" data-box-search /><kbd>/</kbd></label>
+    </div>
+  </section>
+  <section class="section catalog-list">
+    <div class="container">
+      <div class="catalog-toolbar">
+        <span><strong data-results-count>{boxes.length}</strong> {boxes.length === 1 ? 'box' : 'boxes'}</span>
+        <label class="provider-filter">Provider
+          <select aria-label="Filtrar por provider" data-provider-filter>
+            <option value="all">Todos</option>
+            <option value="virtualbox">VirtualBox</option>
+            <option value="vmware_desktop">VMware Workstation</option>
+          </select>
+        </label>
+      </div>
+      <div class="box-grid">{boxes.map((box) => <BoxCard box={box} />)}</div>
+      <div class="empty-state" data-empty-results hidden><span>Nenhuma box corresponde aos filtros selecionados.</span><button type="button" data-clear-filters>Limpar filtros</button></div>
+    </div>
+  </section>
+</SiteLayout>

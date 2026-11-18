@@ -1,4 +1,4 @@
-# Boxes customizadas
+# Vagrant Hub — boxes customizadas
 
 As customs são portadas dos scripts/configurações em debug/Build/vagrant-boxes/vmware/rocky9. Os arquivos em debug/ servem como referência; a Ansible aplica cópias mantidas nas roles.
 

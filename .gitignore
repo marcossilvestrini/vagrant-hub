@@ -355,3 +355,8 @@ debug/
 /boxes/**/box-publication.json
 /boxes/**/metadata.json
 
+# Vagrant Hub static portal
+/portal/node_modules/
+/portal/dist/
+/portal/.astro/
+

@@ -1,4 +1,4 @@
-# Default boxes com Bento
+# Vagrant Hub — boxes base com Bento
 
 Este menu usa os templates Packer atuais do Bento. Ele descobre os perfis de sistema operacional em `os_pkrvars` e usa `packer_templates`; não usa o formato legado de `box-config.json`.
 
@@ -14,13 +14,13 @@ Para usar outro checkout, informe o caminho com `-BentoPath`.
 
 ## Requisitos
 
-- PowerShell 7 (`pwsh`), disponível em Windows e Linux
+- PowerShell 7 (`pwsh`), disponível em Windows, Linux e macOS
 - Packer 1.14.0 ou mais recente no `PATH`
-- VirtualBox ou VMware Workstation e as ferramentas de host necessárias
+- Packer provider instalado para cada hypervisor escolhido
 
 ## Criar uma box
 
-Na raiz do projeto, execute o menu para escolher o perfil e um provider ou ambos:
+Na raiz do projeto, execute o menu para escolher o perfil e um provider ou todos os providers compatíveis com o sistema operacional do host:
 
 ```powershell
 pwsh ./defaults/build.ps1
@@ -32,7 +32,9 @@ Para usar outro checkout do Bento:
 pwsh ./defaults/build.ps1 -BentoPath ../bento
 ```
 
-O script inicializa os plugins Packer do Bento e executa o Packer com o perfil selecionado. Escolher “Ambos” inicia VirtualBox e VMware em paralelo na mesma execução do Packer. Depois do build, move cada arquivo `.box` para `boxes/<sistema>/<versão>/<provider>/` na raiz deste projeto e cria ali um `Vagrantfile` que aponta diretamente para o artefato local. Rode `vagrant up` dentro dessa pasta para testar. O Vagrantfile local é regenerado a cada build para apontar para a box recém-criada; se publicar no OneDrive, ele é atualizado com a URL pública e o checksum. Ao terminar cada build, o menu pergunta se deseja publicar a box no OneDrive. Se aceitar, o script reutiliza `publish-onedrive.ps1`, atualiza o `Vagrantfile` daquela pasta para baixar a box publicada e grava `box-publication.json` ao lado dela. Se responder não, o exemplo continua apontando para o arquivo local.
+O menu lista VirtualBox, VMware Workstation/Fusion, Parallels Desktop Pro, UTM, QEMU e Hyper-V. Parallels e UTM exigem macOS; Hyper-V exige Windows. QEMU e Hyper-V são experimentais no Bento. A opção “Todos disponíveis neste host e perfil” considera o sistema operacional, os builders declarados no perfil Bento e as ferramentas do hypervisor instaladas; os builds selecionados rodam em paralelo. Instale e configure os hypervisors antes de iniciar. Nem todas as combinações de sistema operacional, arquitetura e provider têm suporte no Bento.
+
+O script inicializa os plugins Packer do Bento e executa o Packer com o perfil selecionado. Depois do build, move cada arquivo `.box` para `boxes/<sistema>/<versão>/<provider>/` na raiz deste projeto e cria ali um `Vagrantfile` que aponta diretamente para o artefato local. Rode `vagrant up` dentro dessa pasta para testar. Os exemplos de Parallels, UTM e QEMU declaram o respectivo plugin Vagrant. Hyper-V pode solicitar a escolha de um switch virtual. O Vagrantfile local é regenerado a cada build para apontar para a box recém-criada; se publicar no OneDrive, ele é atualizado com a URL pública e o checksum. Ao terminar cada build, o menu pergunta se deseja publicar a box no OneDrive. Se aceitar, o script reutiliza `publish-onedrive.ps1`, atualiza o `Vagrantfile` daquela pasta para baixar a box publicada e grava `box-publication.json` ao lado dela. Se responder não, o exemplo continua apontando para o arquivo local.
 
 
 

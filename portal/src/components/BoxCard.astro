@@ -1,0 +1,17 @@
+---
+import Icon from './Icon.astro';
+interface BoxProvider { name: string; label: string; downloadUrl: string; checksumType: string; checksum: string; sizeBytes: number; file: string }
+interface Box { slug: string; namespace: string; name: string; title: string; subtitle: string; description: string; os: string; version: string; architecture: string; tags: string[]; featured?: boolean; providers: BoxProvider[] }
+const { box } = Astro.props as { box: Box };
+const base = import.meta.env.BASE_URL;
+const providerCount = box.providers.length;
+const sizeLabel = (box.providers[0]?.sizeBytes / 1_000_000_000).toFixed(2);
+---
+<article class="box-card" data-box-card data-provider={box.providers.map((provider) => provider.name).join(' ')} data-search={`${box.title} ${box.namespace} ${box.name} ${box.os} ${box.version} ${box.tags.join(' ')} ${box.providers.map((provider) => provider.label).join(' ')}`}>
+  <div class="box-card-topline"><span class="os-mark"><Icon name="box" size={23} /></span><span class="status-badge"><span></span> Publicada</span></div>
+  <div class="box-card-copy"><div class="box-kicker">{box.namespace} / {box.name}</div><h3><a href={`${base}boxes/${box.slug}/`}>{box.title}</a></h3><p>{box.description}</p></div>
+  <div class="box-tags"><span>Versão {box.version}</span><span>{box.architecture}</span></div>
+  <div class="box-card-meta"><span><Icon name="layers" size={15} /> {providerCount} {providerCount === 1 ? 'provider' : 'providers'}</span><span><Icon name="hard-drive" size={15} /> {sizeLabel} GB</span></div>
+  <div class="provider-list">{box.providers.map((provider) => <span><Icon name="download" size={14} /> {provider.label}</span>)}</div>
+  <a class="box-card-link" href={`${base}boxes/${box.slug}/`}>Ver detalhes e baixar <Icon name="arrow" size={17} /></a>
+</article>

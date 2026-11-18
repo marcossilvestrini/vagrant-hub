@@ -1,0 +1,11 @@
+---
+import Icon from './Icon.astro';
+const base = import.meta.env.BASE_URL;
+---
+<footer class="site-footer" id="about">
+  <div class="container footer-main">
+    <div class="footer-brand-block"><a class="brand footer-brand" href={base}><span class="brand-mark"><Icon name="box" size={21} /></span><span>vagrant<span class="brand-light">hub</span><span class="brand-period">.</span></span></a><p>Boxes para ambientes Vagrant.</p></div>
+    <div class="footer-links"><div><strong>Explorar</strong><a href={`${base}boxes/`}>Catálogo de boxes</a><a href={`${base}#how-it-works`}>Como usar</a></div><div><strong>Mantenedor</strong><a href="https://github.com/marcossilvestrini" target="_blank" rel="me noreferrer"><Icon name="github" size={15} /> Marcos Silvestrini <Icon name="external" size={12} /></a></div></div>
+  </div>
+  <div class="container footer-bottom"><span>© {new Date().getFullYear()} Vagrant Hub</span><span>Projeto independente · Não afiliado à HashiCorp</span></div>
+</footer>

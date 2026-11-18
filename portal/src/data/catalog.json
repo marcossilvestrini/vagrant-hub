@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-11-11T00:30:01Z",
+  "boxes": [
+    {
+      "slug": "debian-13",
+      "namespace": "silvestrini",
+      "name": "debian-13",
+      "title": "Debian 13",
+      "subtitle": "Trixie · x86_64",
+      "description": "Uma box base Debian 13 para laboratórios e ambientes de desenvolvimento reproduzíveis.",
+      "os": "Debian",
+      "version": "13.7",
+      "architecture": "amd64",
+      "tags": ["Debian", "Linux", "Base", "x86_64"],
+      "featured": true,
+      "providers": [
+        {
+          "name": "vmware_desktop",
+          "label": "VMware Workstation",
+          "downloadUrl": "https://1drv.ms/u/c/0a70330a94c24dd2/IQAAeZWvL93oRKBDa9J6l72YAZekvwRePc_oxOgxq1JPZPQ?download=1",
+          "checksumType": "sha256",
+          "checksum": "f0a46e1a035ea3a285fc6bf7bc3e66699876a07a70dbcf5d6d3549e64f6cee83",
+          "sizeBytes": 1109696433,
+          "file": "debian-13.7-x86_64.vmware.box"
+        }
+      ]
+    }
+  ]
+}

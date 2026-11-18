@@ -1,0 +1,10 @@
+---
+import '../styles/global.css';
+import SiteHeader from './SiteHeader.astro';
+import SiteFooter from './SiteFooter.astro';
+interface Props { title?: string; description?: string }
+const { title = 'Vagrant Hub — boxes para seus ambientes', description = 'Encontre boxes Vagrant confiáveis para laboratórios e ambientes de desenvolvimento.' } = Astro.props;
+const fullTitle = title.includes('Vagrant Hub') ? title : `${title} | Vagrant Hub`;
+---
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="description" content={description} /><meta name="theme-color" content="#08142e" /><link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} /><title>{fullTitle}</title></head><body><SiteHeader /><main><slot /></main><SiteFooter /><script>import '../scripts/site.ts';</script></body></html>

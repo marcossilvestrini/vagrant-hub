@@ -112,13 +112,13 @@ function Stop-BentoBuilderMachines {
     }
 
     if ($Providers.FolderName -contains 'vmware') {
-        $vmrun = Get-Command vmrun.exe -ErrorAction SilentlyContinue
+        $vmrun = Get-Command vmrun.exe, vmrun -ErrorAction SilentlyContinue | Select-Object -First 1
         if (-not $vmrun) {
-            foreach ($candidate in @('C:\Program Files\VMware\VMware Workstation\vmrun.exe', 'C:\Program Files (x86)\VMware\VMware Workstation\vmrun.exe')) {
+            foreach ($candidate in @('C:\Program Files\VMware\VMware Workstation\vmrun.exe', 'C:\Program Files (x86)\VMware\VMware Workstation\vmrun.exe', '/Applications/VMware Fusion.app/Contents/Library/vmrun', '/usr/bin/vmrun')) {
                 if (Test-Path -LiteralPath $candidate -PathType Leaf) { $vmrun = [pscustomobject]@{ Source = $candidate }; break }
             }
         }
-        if (-not $vmrun) { throw 'vmrun.exe was not found; cannot safely check for orphaned Bento VMware VMs.' }
+        if (-not $vmrun) { throw 'vmrun was not found; cannot safely check for orphaned Bento VMware VMs.' }
         $runningVms = @(& $vmrun.Source list 2>&1)
         if ($LASTEXITCODE -ne 0) { throw "vmrun list failed: $($runningVms -join ' ')" }
         foreach ($vmxPath in $runningVms | Select-Object -Skip 1) {
@@ -132,9 +132,9 @@ function Stop-BentoBuilderMachines {
     }
 
     if ($Providers.FolderName -contains 'virtualbox') {
-        $vbox = Get-Command VBoxManage.exe -ErrorAction SilentlyContinue
+        $vbox = Get-Command VBoxManage.exe, VBoxManage -ErrorAction SilentlyContinue | Select-Object -First 1
         if (-not $vbox) {
-            foreach ($candidate in @('C:\Program Files\Oracle\VirtualBox\VBoxManage.exe', 'C:\Program Files (x86)\Oracle\VirtualBox\VBoxManage.exe')) {
+            foreach ($candidate in @('C:\Program Files\Oracle\VirtualBox\VBoxManage.exe', 'C:\Program Files (x86)\Oracle\VirtualBox\VBoxManage.exe', '/Applications/VirtualBox.app/Contents/MacOS/VBoxManage')) {
                 if (Test-Path -LiteralPath $candidate -PathType Leaf) { $vbox = [pscustomobject]@{ Source = $candidate }; break }
             }
         }
@@ -231,29 +231,110 @@ foreach ($pathSegment in @($osName, $osVersion, $osArch)) {
 $pathSeparators = [char[]] @([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
 $rootPrefix = $bentoRoot.Path.TrimEnd($pathSeparators) + [IO.Path]::DirectorySeparatorChar
 $profileRelativePath = $profile.FullName.Substring($rootPrefix.Length).Replace('\', '/')
+$profileDeclaresSources = $profileText -match '(?m)^\s*sources_enabled\s*='
+if ($profileDeclaresSources) {
+    $profilePackerTargets = @([regex]::Matches($profileText, '"source\.([^"]+)"') | ForEach-Object { $_.Groups[1].Value })
+}
+else {
+    $profilePackerTargets = @('parallels-iso.vm', 'qemu.vm', 'utm-iso.vm', 'virtualbox-iso.vm', 'vmware-iso.vm', 'hyperv-iso.vm')
+}
 
+$hostPlatform = if ($IsWindows) { 'Windows' } elseif ($IsMacOS) { 'macOS' } else { 'Linux' }
 $providers = @(
-    [pscustomobject] @{ Name = 'VirtualBox'; PackerTarget = 'virtualbox-iso.vm'; FolderName = 'virtualbox'; ArtifactRegex = '\.virtualbox\.box$'; VagrantProvider = 'virtualbox' },
-    [pscustomobject] @{ Name = 'VMware Workstation'; PackerTarget = 'vmware-iso.vm'; FolderName = 'vmware'; ArtifactRegex = '\.vmware(?:_desktop)?\.box$'; VagrantProvider = 'vmware_desktop' }
+    [pscustomobject] @{ Name = 'VirtualBox'; PackerTargets = @('virtualbox-iso.vm', 'virtualbox-ovf.vm'); FolderName = 'virtualbox'; ArtifactRegex = '\.virtualbox\.box$'; VagrantProvider = 'virtualbox'; HostPlatforms = @('Windows', 'Linux', 'macOS'); Experimental = $false; VagrantPlugin = $null; ProfileAvailable = $false },
+    [pscustomobject] @{ Name = 'VMware Workstation / Fusion'; PackerTargets = @('vmware-iso.vm'); FolderName = 'vmware'; ArtifactRegex = '\.vmware(?:_desktop|_fusion)?\.box$'; VagrantProvider = 'vmware_desktop'; HostPlatforms = @('Windows', 'Linux', 'macOS'); Experimental = $false; VagrantPlugin = $null; ProfileAvailable = $false },
+    [pscustomobject] @{ Name = 'Parallels Desktop Pro [macOS]'; PackerTargets = @('parallels-iso.vm', 'parallels-ipsw.vm'); FolderName = 'parallels'; ArtifactRegex = '\.parallels\.box$'; VagrantProvider = 'parallels'; HostPlatforms = @('macOS'); Experimental = $false; VagrantPlugin = 'vagrant-parallels'; ProfileAvailable = $false },
+    [pscustomobject] @{ Name = 'UTM [macOS]'; PackerTargets = @('utm-iso.vm'); FolderName = 'utm'; ArtifactRegex = '\.utm\.box$'; VagrantProvider = 'utm'; HostPlatforms = @('macOS'); Experimental = $false; VagrantPlugin = 'vagrant_utm'; ProfileAvailable = $false },
+    [pscustomobject] @{ Name = 'QEMU [experimental]'; PackerTargets = @('qemu.vm'); FolderName = 'qemu'; ArtifactRegex = '\.qemu\.box$'; VagrantProvider = 'qemu'; HostPlatforms = @('Windows', 'Linux', 'macOS'); Experimental = $true; VagrantPlugin = 'vagrant-qemu'; ProfileAvailable = $false },
+    [pscustomobject] @{ Name = 'Hyper-V [Windows, experimental]'; PackerTargets = @('hyperv-iso.vm'); FolderName = 'hyperv'; ArtifactRegex = '\.hyperv\.box$'; VagrantProvider = 'hyperv'; HostPlatforms = @('Windows'); Experimental = $true; VagrantPlugin = $null; ProfileAvailable = $false }
 )
+foreach ($provider in $providers) {
+    $matchingTargets = @($provider.PackerTargets | Where-Object { $profilePackerTargets -contains $_ })
+    if ($matchingTargets.Count -gt 0) {
+        $provider.PackerTarget = $matchingTargets[0]
+        $provider.ProfileAvailable = $true
+    }
+}
+
+function Get-ProviderUnavailableReason {
+    param([Parameter(Mandatory)] [object] $Provider)
+
+    if ($Provider.HostPlatforms -notcontains $hostPlatform) {
+        return "exige host $($Provider.HostPlatforms -join ', ')"
+    }
+    if (-not $Provider.ProfileAvailable) {
+        return "não há source Packer deste provider no perfil $($profile.BaseName)"
+    }
+
+    $commands = switch ($Provider.FolderName) {
+        'virtualbox' { @('VBoxManage.exe', 'VBoxManage') }
+        'vmware' { @('vmrun.exe', 'vmrun') }
+        'parallels' { @('prlctl') }
+        'utm' { @('utmctl') }
+        'qemu' { @('qemu-system-x86_64.exe', 'qemu-system-x86_64', 'qemu-system-aarch64.exe', 'qemu-system-aarch64') }
+        'hyperv' { @('Get-VM') }
+    }
+    foreach ($commandName in $commands) {
+        if (Get-Command $commandName -ErrorAction SilentlyContinue) { return $null }
+    }
+
+    if ($Provider.FolderName -eq 'virtualbox') {
+        foreach ($candidate in @('C:\Program Files\Oracle\VirtualBox\VBoxManage.exe', 'C:\Program Files (x86)\Oracle\VirtualBox\VBoxManage.exe', '/Applications/VirtualBox.app/Contents/MacOS/VBoxManage')) {
+            if (Test-Path -LiteralPath $candidate -PathType Leaf) { return $null }
+        }
+    }
+    if ($Provider.FolderName -eq 'vmware') {
+        foreach ($candidate in @('C:\Program Files\VMware\VMware Workstation\vmrun.exe', 'C:\Program Files (x86)\VMware\VMware Workstation\vmrun.exe', '/Applications/VMware Fusion.app/Contents/Library/vmrun', '/usr/bin/vmrun')) {
+            if (Test-Path -LiteralPath $candidate -PathType Leaf) { return $null }
+        }
+    }
+    if ($Provider.FolderName -eq 'utm' -and (Test-Path -LiteralPath '/Applications/UTM.app' -PathType Container)) { return $null }
+
+    $toolName = switch ($Provider.FolderName) {
+        'virtualbox' { 'VBoxManage' }
+        'vmware' { 'vmrun' }
+        'parallels' { 'prlctl' }
+        'utm' { 'UTM / utmctl' }
+        'qemu' { 'qemu-system' }
+        'hyperv' { 'Hyper-V PowerShell tools (Get-VM)' }
+    }
+    return "$toolName não encontrado ou não está disponível no host."
+}
 
 Write-Host ''
-Write-Host "Provider para $osName $osVersion ($osArch):" -ForegroundColor Cyan
+Write-Host "Providers Bento para $osName $osVersion ($osArch) — host: ${hostPlatform}:" -ForegroundColor Cyan
 for ($index = 0; $index -lt $providers.Count; $index++) {
     Write-Host ('{0,2}. {1}' -f ($index + 1), $providers[$index].Name)
 }
-Write-Host ' 3. Ambos (em paralelo)'
+Write-Host ('{0,2}. Todos disponíveis neste host e perfil (em paralelo)' -f ($providers.Count + 1))
 Write-Host ' 0. Voltar'
 
-$providerChoice = Read-MenuChoice -Prompt 'Escolha o provider' -ItemCount 3
-if ($providerChoice -eq 0) {
-    return
+$allCompatibleChoice = $providers.Count + 1
+while ($true) {
+    $providerChoice = Read-MenuChoice -Prompt 'Escolha o provider' -ItemCount $allCompatibleChoice
+    if ($providerChoice -eq 0) { return }
+    if ($providerChoice -eq $allCompatibleChoice) {
+        $selectedProviders = @()
+        foreach ($provider in $providers) {
+            $unavailableReason = Get-ProviderUnavailableReason -Provider $provider
+            if (-not $unavailableReason) { $selectedProviders += $provider }
+            else { Write-Host "Ignorando $($provider.Name): $unavailableReason" -ForegroundColor DarkGray }
+        }
+        break
+    }
+
+    $candidateProvider = $providers[$providerChoice - 1]
+    $unavailableReason = Get-ProviderUnavailableReason -Provider $candidateProvider
+    if ($unavailableReason) {
+        Write-Host "$($candidateProvider.Name) indisponível: $unavailableReason Escolha outro provider." -ForegroundColor Yellow
+        continue
+    }
+
+    $selectedProviders = @($candidateProvider)
+    break
 }
-if ($providerChoice -eq 3) {
-    $selectedProviders = @($providers)
-}
-else {
-    $selectedProviders = @($providers[$providerChoice - 1])
+if ($selectedProviders.Count -eq 0) {
+    throw "Nenhum provider Bento compatível com o host $hostPlatform foi encontrado."
 }
 
 $outputPath = Join-Path $bentoRoot.Path 'builds/build_complete'
@@ -283,6 +364,12 @@ try {
     $logDirectory = Join-Path $bentoRoot.Path 'builds/logs'
     New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
     $logTimestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+    $providerSources = ($selectedProviders | ForEach-Object { '"source.{0}"' -f $_.PackerTarget }) -join ', '
+    $providerVariablesPath = Join-Path ([IO.Path]::GetTempPath()) "vagrant-hub-bento-sources-$PID-$logTimestamp.pkrvars.hcl"
+    Set-Content -LiteralPath $providerVariablesPath -Value "sources_enabled = [$providerSources]`n" -Encoding utf8NoBOM
+    $providerSources = ($selectedProviders | ForEach-Object { '"source.{0}"' -f $_.PackerTarget }) -join ', '
+    $providerVariablesPath = Join-Path ([IO.Path]::GetTempPath()) "vagrant-hub-bento-sources-$PID-$logTimestamp.pkrvars.hcl"
+    Set-Content -LiteralPath $providerVariablesPath -Value "sources_enabled = [$providerSources]`n" -Encoding utf8NoBOM
     $packerLogPath = Join-Path $logDirectory "packer-$osName-$osVersion-$osArch-$providerSlug-$logTimestamp.log"
     $previousPackerLog = [Environment]::GetEnvironmentVariable('PACKER_LOG', 'Process')
     $previousPackerLogPath = [Environment]::GetEnvironmentVariable('PACKER_LOG_PATH', 'Process')
@@ -292,7 +379,7 @@ try {
     try {
         $env:PACKER_LOG = '1'
         $env:PACKER_LOG_PATH = $packerLogPath
-        & packer build -force "-only=$targets" "-parallel-builds=$($selectedProviders.Count)" "-var-file=$profileRelativePath" './packer_templates'
+        & packer build -force "-only=$targets" "-parallel-builds=$($selectedProviders.Count)" "-var-file=$profileRelativePath" "-var-file=$providerVariablesPath" './packer_templates'
         if ($LASTEXITCODE -ne 0) {
             $packerExitCode = $LASTEXITCODE
             Stop-BentoBuilderMachines -Providers $selectedProviders -OutputDirectories $builderOutputDirectories -MachineName "$osName-$osVersion-$(if ($osArch -eq 'x86_64') { 'amd64' } else { $osArch })"
@@ -302,6 +389,7 @@ try {
     finally {
         [Environment]::SetEnvironmentVariable('PACKER_LOG', $previousPackerLog, 'Process')
         [Environment]::SetEnvironmentVariable('PACKER_LOG_PATH', $previousPackerLogPath, 'Process')
+        Remove-Item -LiteralPath $providerVariablesPath -Force -ErrorAction SilentlyContinue
     }
 }
 finally {
@@ -336,11 +424,12 @@ foreach ($provider in $selectedProviders) {
 
     $vagrantfilePath = Join-Path $destinationPath 'Vagrantfile'
     $boxName = "$osName-$osVersion-$osArch"
+    $pluginDeclaration = if ($provider.VagrantPlugin) { "  config.vagrant.plugins = `"$($provider.VagrantPlugin)`"`n" } else { '' }
     $vagrantfile = @"
 require "uri"
 
 Vagrant.configure("2") do |config|
-  config.vm.box = "local/$boxName"
+$pluginDeclaration  config.vm.box = "local/$boxName"
   box_path = File.expand_path("$($builtBox.Name)", __dir__).tr("\\", "/")
   box_path = "/#{box_path}" unless box_path.start_with?("/")
   config.vm.box_url = "file://#{URI::DEFAULT_PARSER.escape(box_path)}"

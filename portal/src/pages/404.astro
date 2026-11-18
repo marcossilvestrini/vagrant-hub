@@ -1,0 +1,6 @@
+---
+import SiteLayout from '../components/SiteLayout.astro';
+import Icon from '../components/Icon.astro';
+const base = import.meta.env.BASE_URL;
+---
+<SiteLayout title="Página não encontrada"><section class="not-found"><div class="not-found-mark"><Icon name="box" size={34} /></div><span class="section-kicker">ERRO 404</span><h1>Esta box não está por aqui<span class="blue-period">.</span></h1><p>O endereço pode ter mudado ou o catálogo ainda não tem essa box.</p><a class="button button-primary" href={`${base}boxes/`}>Voltar ao catálogo <Icon name="arrow" size={16} /></a></section></SiteLayout>
